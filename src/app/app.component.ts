@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Signal, signal, WritableSignal } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
 import { UserService } from './services/user.service';
@@ -25,7 +25,8 @@ export class AppComponent {
     }),
     skills: this.formBuilder.array([])
   })
-  userProfiles$: any
+  userProfiles: WritableSignal<userProfile[]> = signal([])
+  totalNumberOfUsers: Signal<number> = signal(0)
 
   get skills(): FormArray {
     return this.userData.get('skills') as FormArray
@@ -41,7 +42,8 @@ export class AppComponent {
   }
 
   loadUserProfiles(): void {
-    this.userProfiles$ = this.userService.fetchUserProfiles()
+    this.userProfiles = this.userService.getUserProfiles()
+    this.totalNumberOfUsers = this.userService.getTotalNumberOfUsers()
   }
 
   submitForm(): void {

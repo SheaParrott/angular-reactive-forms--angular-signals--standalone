@@ -1,6 +1,5 @@
-import { Injectable } from '@angular/core';
+import { computed, effect, Injectable, Signal, signal, WritableSignal } from '@angular/core';
 import { userProfile } from '../Models/user';
-import { Observable, of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -8,34 +7,47 @@ import { Observable, of } from 'rxjs';
 export class UserService {
 
   private storageKey: string = 'users'
-  private userProfiles: userProfile[] = []
+  private userProfiles: WritableSignal<userProfile[]> = signal([])
+  private totalNumberOfUsers: Signal<number> = computed(() => this.userProfiles().length)
 
   constructor() {
     const storage = localStorage.getItem(this.storageKey)
-    if (storage) {
-      this.userProfiles = JSON.parse(storage)
+    if (storage && storage != 'undefined') {
+      const parsed = JSON.parse(storage)
+      if (parsed) {
+        this.userProfiles.set(JSON.parse(storage))
+      }
     }
+
+    effect(() => {
+      console.log('All user Profiles: ', this.userProfiles())
+    })
   }
 
-  fetchUserProfiles(): Observable<userProfile[]> {
-    return of(this.userProfiles)
+  getUserProfiles(): WritableSignal<userProfile[]> {
+    return this.userProfiles
+  }
+
+  getTotalNumberOfUsers(): Signal<number> {
+    return this.totalNumberOfUsers
   }
 
   addOrEditUserProfile(user: userProfile){
     if (!user.id) { // add
-      this.userProfiles.push({...user, id: this.userProfiles.length + 1})
+      this.userProfiles.set([...this.userProfiles(), {...user, id: this.userProfiles().length + 1}])
     } else { // edit
-      const index = this.userProfiles.findIndex(userProfile => userProfile.id === user.id)
+      const index = this.userProfiles().findIndex(userProfile => userProfile.id === user.id)
 
       if (index != -1) {
-        this.userProfiles.splice(index, 1, user)
+        this.userProfiles().splice(index, 1, user)
       }
     }
-    localStorage.setItem(this.storageKey, JSON.stringify(this.userProfiles))
+
+    localStorage.setItem(this.storageKey, JSON.stringify(this.userProfiles()))
   }
 
   deleteUserProfile(id: number){
-    this.userProfiles = this.userProfiles.filter(user => user.id != id)
-    localStorage.setItem(this.storageKey, JSON.stringify(this.userProfiles))
+    this.userProfiles.set(this.userProfiles().filter(user => user.id != id))
+    localStorage.setItem(this.storageKey, JSON.stringify(this.userProfiles()))
   }
 }
